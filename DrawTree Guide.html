@@ -1,0 +1,126 @@
+<html><head>
+<title>CUP DrawTree Manual</title></head>
+<style>
+body {
+    background-color: #ccffff;
+}
+
+hr {
+	border-color: black;
+}
+
+a {
+	color: blue;
+}
+
+pre {
+	font-family: "Times New Roman", Times, serif;
+}
+</style>
+<body>
+<div class="container"><hr>
+<h1>CupDrawTree User Manual</h1><hr>
+<h3>Table of Contents</h3>
+<ol type="i">
+	<li> <a href="#changes">Changes from CUP v11 </a></li>
+	<li> <a href="#install">Installation </a></li>
+	<li> <a href="#size">Changing maximum screen size </a></li>
+	<li> <a href="#complex">ComplexSymbolFactory</a></li>
+	<li> <a href="#bugs">Known Bugs</a></li>
+</ol>
+
+<hr><h3><a id="changes"></a>i. Changes from CUP v11</h3>
+<p>To implement the DrawTree function several files were modified/ added to the original source code</p>
+<h4>Changes to java_cup folder</h4>
+<ul>
+<li><p>MainDrawTree:</p>A new class that is the same as the main but for the parser2 and scanner2 functions calls,<br>The -interface option is deactivated since it's causing conflicts</li>
+<li><p>emit.java:</p> The methods parser2() and scanner2() were added . They are a copy of the original version with the addition
+	of some lines of code that will make the parser run the DisegnaAlbero class</li>
+	
+</ul>
+<h4>Changes to java_cup/runtime folder</h4>
+<ul><li><p>lr_parser:</p>The scanner object _scanner is now public in order to be used in other classes freely</li></ul>
+<h4>Changes to  DisegnaAlbero</h4>
+<ul>
+<li>Added support for <a href="#complex">ComplexSymbolFactory </a>and fixed a bug on marker names displayed  without the first letter</li>
+<li>Added the method to read scale.in , which is used to change the maximum window size of the drawing (more details <a href="#size">here</a>)</li>
+<li>Fixed the swap in the reduction of symbols created from epsilon by adding a delay to the print</li>
+<li>Node variable "valore" is now the name of the symbol , not its number in the sym.java file</li>
+<li>Window opened by standard draw has now title "CUP DrawTree"
+</ul>
+
+<hr><h3><a id="install"></a>ii. Installation</h3>
+<p>To have a working version of CUP , substitute the content of the previous CUP folder with the content of src.<br>Then run the following commands:</p>
+<tt><pre>
+cd java_cup
+javac *.java runtime/*.java ../StdDraw.java</tt></pre>
+<p>To test that the MainDrawTree is correctly working run this command: </p>
+<tt><pre>java java_cup.MainDrawTree</tt></pre>
+<p>The shell should be blocked until CTRL+C is typed</p>
+
+<hr><h3><a id="size"></a>iii. Changing maximum screen size</h3>
+<p>It's possible to change the default scale (10.0) by modifying the content of the file "scale.in" in the same folder as the DisegnaAlbero class. Furthermore 
+a file "scale.in" can be added  in the same folder as the project Main . In this case the program will use this scale instead of the one inside the installation folder.
+<br>
+The file scale.txt must contain only a double bigger or equal to 1.0 otherwise the program will use the default value.</p>
+
+<hr><h3><a id="complex"></a>iii. ComplexSymbolFactory</h3><p>
+To use this new class, the parser and the scanner have to be modified.A new object ComplexSymbolFactory has to be declared in the main and passed to the scanner and to the parser as an argument.
+</p><h4>Scanner.jflex changes</h4>
+<p>The following imports have to be used:</p>
+<tt><pre>
+import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.ComplexSymbolFactory.Location;
+import java_cup.runtime.*;
+</tt></pre>
+<p>The parser has to use this new builder:</p>
+<tt><pre>
+%{
+    ComplexSymbolFactory sf;	
+    StringBuffer string = new StringBuffer();
+    public Yylex(java.io.Reader in, ComplexSymbolFactory sf){
+	this(in);
+	this.sf = sf;
+    }
+	
+  private void error(String message) {
+    System.out.println("Error at line "+(yyline+1)+", column "+(yycolumn+1)+" : "+message);
+  }
+%}
+</tt></pre>
+<p>The new EOF symbol must be a ComplexSymbol to avoid a ClassCastException at the end</p> 
+<tt><pre>
+%eofval{
+     return sf.newSymbol("EOF", sym.EOF);
+%eofval}
+</tt></pre>
+<p>Finally we need to return symbols using one of the following methods:</p>
+<tt><pre>
+/*"complexfactoryName".newSymbol("NameIwant", sym.SYMBOLNAME)*/
+/* "complexfactoryName".newSymbol("NameIwant", sym.SYMBOLNAME,value)*/
+{word}		{return sf.newSymbol("WORD",sym.WORD, new String(yytext())); }
+</tt></pre><h4>Parser/Main changes</h4>
+<p>The main , that can be inside the .cup file or in .java file will now need new imports:</p>
+<tt><pre>
+import java_cup.runtime.*;
+import java.io.*;
+import java_cup.runtime.Symbol;
+import java_cup.runtime.ComplexSymbolFactory;
+import java_cup.runtime.ComplexSymbolFactory.Location;
+</tt></pre>
+<p>Furthermore the new code will look like this:</p>
+<tt><pre>
+ComplexSymbolFactory sf=new ComplexSymbolFactory();
+/* Instance the scaner */
+Yylex l = new Yylex(new FileReader(argv[0]),sf);
+/* Instance the parser*/
+parser p = new parser(l,sf);
+/* Start the parser */
+Object result = p.parse(); 
+</tt></pre>
+<p>A working example can be found in the folder java_cup/example/
+<br>For more details on ComplexSymbolFactory refer to <a href="http://www2.cs.tum.edu/projects/cup/docs.php#advanced-symbols" target="_blank">the official CUP manual</a>
+<hr><h3><a id="bugs"></a>iii. Known Bugs</h3>
+<p>None</p>
+</div></body></html>
